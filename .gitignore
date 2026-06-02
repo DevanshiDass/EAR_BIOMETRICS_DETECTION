@@ -1,0 +1,30 @@
+
+echo "# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ear/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Models (too large)
+*.keras
+*.h5
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp" > .gitignore
+
+git add .gitignore
+git commit -m "Add .gitignore"
+git push

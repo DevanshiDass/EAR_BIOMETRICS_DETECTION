@@ -1,0 +1,9 @@
+{
+  "claim_id": "012",
+  "probe_image": "database/012_back_ear.jpg",
+  "knn_id": "012",
+  "cnn_id": "012",
+  "reference_image": "database/012_down_ear.jpg",
+  "sift_good_matches": 5,
+  "min_good_matches": 5
+}

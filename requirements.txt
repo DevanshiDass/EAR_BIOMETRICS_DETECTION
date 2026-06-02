@@ -1,0 +1,9 @@
+jupyter
+notebook
+ipykernel
+numpy
+matplotlib
+scikit-image
+scikit-learn
+opencv-contrib-python
+tensorflow
