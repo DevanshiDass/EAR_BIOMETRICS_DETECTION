@@ -330,7 +330,7 @@ The image below demonstrates the complete preprocessing workflow.
 6. Ear Cropping
 
 <p align="center">
-  <img src="database/output.png" width="950">
+  <img src="output.png" width="950">
 </p>
 
 ### Purpose of Each Stage
