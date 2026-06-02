@@ -2039,6 +2039,14 @@ Final Authentication Result: ✅ ACCEPTED
 ═════════════════════════════════════════════════════════
 ```
 
+### Visual Result Samples
+
+Below are representative images from the successful authentication case.
+
+![Original Ear - Front View](ALL%20PICS/012_front_ear.jpg)
+![Reference Ear - Cropped Result](ALL%20PICS/012_down_ear_06_cropped.jpg)
+![SIFT Keypoint Visualization](ALL%20PICS/sift_keypoints.jpg)
+
 **Authentication Decision Logic:**
 ```
 IF (SIFT_matched == TRUE) AND 
