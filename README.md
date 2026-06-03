@@ -182,6 +182,432 @@ Each subject contains images captured from multiple viewpoints.
 ```
 
 ---
+# 🏗️ System Architecture
+
+The Ear Biometrics Authentication System follows a multi-stage pipeline that combines image processing, feature engineering, machine learning, and deep learning to perform identity verification. The architecture progressively refines the input image, extracts discriminative ear features, classifies the individual, and makes a final authentication decision.
+
+---
+
+## Architecture Diagram
+
+```text
+                     ┌─────────────────┐
+                     │  Ear Image Input │
+                     └─────────┬───────┘
+                               │
+                               ▼
+                 ┌────────────────────────┐
+                 │ Image Preprocessing    │
+                 │ • Resize               │
+                 │ • Noise Reduction      │
+                 │ • Color Conversion     │
+                 └─────────┬──────────────┘
+                           │
+                           ▼
+                 ┌────────────────────────┐
+                 │ Skin Detection (YCbCr) │
+                 │ Skin Region Extraction │
+                 └─────────┬──────────────┘
+                           │
+                           ▼
+                 ┌────────────────────────┐
+                 │ Otsu Thresholding      │
+                 │ Binary Segmentation    │
+                 └─────────┬──────────────┘
+                           │
+                           ▼
+                 ┌────────────────────────┐
+                 │ Morphological          │
+                 │ Operations             │
+                 │ (Opening & Closing)    │
+                 └─────────┬──────────────┘
+                           │
+                           ▼
+                 ┌────────────────────────┐
+                 │ Contour Detection      │
+                 │ Ear Localization       │
+                 │ Ear Cropping           │
+                 └─────────┬──────────────┘
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+             ▼                           ▼
+ ┌─────────────────────┐      ┌─────────────────────┐
+ │ SIFT Feature        │      │ CNN Feature         │
+ │ Extraction          │      │ Learning            │
+ └─────────┬───────────┘      └─────────┬───────────┘
+           │                            │
+           ▼                            ▼
+ ┌─────────────────────┐      ┌─────────────────────┐
+ │ BFMatcher +         │      │ CNN Classification  │
+ │ Lowe Ratio Test     │      │ Identity Prediction │
+ └─────────┬───────────┘      └─────────┬───────────┘
+           │                            │
+           └─────────────┬──────────────┘
+                         ▼
+             ┌────────────────────────┐
+             │ Decision Fusion Layer  │
+             │ KNN + CNN + SIFT Match │
+             └─────────┬──────────────┘
+                       │
+                       ▼
+             ┌────────────────────────┐
+             │ Authentication Result  │
+             │ ACCEPT / REJECT        │
+             └────────────────────────┘
+```
+
+---
+
+# ⚙️ System Workflow
+
+The Ear Biometrics Authentication System processes an ear image through multiple stages to achieve reliable identity verification.
+
+---
+
+## Step 1: Image Acquisition
+
+The system receives an ear image from the dataset or a live camera source.
+
+### Input Example
+
+```text
+012_back_ear.jpg
+```
+
+Possible challenges:
+
+- Background clutter
+- Illumination changes
+- Noise
+- Pose variations
+
+---
+
+## Step 2: Skin Detection using YCbCr
+
+The image is converted from BGR to YCbCr color space.
+
+```python
+MIN_YCRCB = [0,154,77]
+MAX_YCRCB = [255,183,140]
+```
+
+Pixels within the skin range are retained while non-skin regions are removed.
+
+### Output
+
+```text
+Original Image
+      ↓
+Skin Mask
+```
+
+### Benefits
+
+- Background Removal
+- Improved Segmentation
+- Better Ear Localization
+
+---
+
+## Step 3: Otsu Thresholding
+
+The skin mask is converted into a binary image using Otsu's thresholding method.
+
+### Workflow
+
+```text
+Skin Mask
+      ↓
+Grayscale
+      ↓
+Otsu Threshold
+      ↓
+Binary Image
+```
+
+### Benefits
+
+- Automatic Threshold Selection
+- Foreground Separation
+- Improved Contour Detection
+
+---
+
+## Step 4: Morphological Operations
+
+Morphological filtering improves the quality of segmentation.
+
+### Opening
+
+```text
+Erosion → Dilation
+```
+
+Used to remove noise.
+
+### Closing
+
+```text
+Dilation → Erosion
+```
+
+Used to fill holes and connect fragmented regions.
+
+### Output
+
+```text
+Clean Binary Mask
+```
+
+---
+
+## Step 5: Ear Localization
+
+Contours are extracted from the processed binary image.
+
+### Workflow
+
+```text
+Binary Mask
+      ↓
+Contour Detection
+      ↓
+Largest Contour
+      ↓
+Bounding Rectangle
+      ↓
+Ear Cropping
+```
+
+The resulting cropped image becomes the Region of Interest (ROI).
+
+### Benefits
+
+- Removes irrelevant background
+- Focuses only on ear structure
+- Improves recognition accuracy
+
+---
+
+## Step 6: SIFT Feature Extraction
+
+The localized ear image is processed using Scale-Invariant Feature Transform (SIFT).
+
+### SIFT Pipeline
+
+```text
+Ear Image
+      ↓
+Scale Space Construction
+      ↓
+Difference of Gaussian
+      ↓
+Keypoint Detection
+      ↓
+Orientation Assignment
+      ↓
+128-D Feature Descriptors
+```
+
+### Features Captured
+
+- Ear Helix
+- Antihelix
+- Lobule
+- Ear Edges
+- Texture Information
+
+### Output
+
+```text
+Keypoints + Descriptors
+```
+
+---
+
+## Step 7: Feature Matching
+
+Descriptors extracted from the probe image are matched with stored descriptors.
+
+### BFMatcher
+
+Compares every descriptor from one image against every descriptor from another.
+
+### Lowe Ratio Test
+
+```text
+d1 < 0.75 × d2
+```
+
+Where:
+
+- d1 = Nearest Neighbor Distance
+- d2 = Second Nearest Neighbor Distance
+
+### Output
+
+```text
+Good Matches Count
+```
+
+A higher number of good matches indicates stronger similarity.
+
+---
+
+## Step 8: KNN Classification
+
+The ear image is converted into a feature vector and classified using K-Nearest Neighbors.
+
+### Workflow
+
+```text
+Ear Image
+      ↓
+Resize
+      ↓
+Flatten
+      ↓
+Feature Vector
+      ↓
+KNN (K=3)
+      ↓
+Predicted Identity
+```
+
+### Advantages
+
+- Simple
+- Fast
+- Effective on Small Datasets
+
+---
+
+## Step 9: CNN Classification
+
+The same ear image is passed through a Convolutional Neural Network.
+
+### CNN Architecture
+
+```text
+Input (96×96×1)
+       ↓
+Conv2D (32)
+       ↓
+MaxPooling
+       ↓
+Conv2D (64)
+       ↓
+MaxPooling
+       ↓
+Conv2D (128)
+       ↓
+MaxPooling
+       ↓
+Flatten
+       ↓
+Dense (128)
+       ↓
+Dropout (0.4)
+       ↓
+Softmax Output
+```
+
+### Learned Features
+
+Layer 1:
+
+- Edges
+- Corners
+
+Layer 2:
+
+- Curves
+- Shapes
+
+Layer 3:
+
+- Ear Structures
+
+Final Layers:
+
+- Identity Specific Patterns
+
+### Output
+
+```text
+Predicted Person ID
+Confidence Score
+```
+
+---
+
+## Step 10: Decision Fusion
+
+Outputs from multiple modules are combined to make the final authentication decision.
+
+### Inputs
+
+- SIFT Matching Score
+- KNN Prediction
+- CNN Prediction
+
+### Fusion Logic
+
+```text
+SIFT Match Score
+          +
+KNN Prediction
+          +
+CNN Prediction
+          ↓
+Final Decision
+```
+
+### Example
+
+```text
+Claimed ID      : 012
+SIFT Matches    : 5
+KNN Prediction  : 012
+CNN Prediction  : 012
+
+Result          : ACCEPTED
+```
+
+---
+
+# 🎯 End-to-End Pipeline Summary
+
+```text
+Input Ear Image
+        ↓
+YCbCr Skin Detection
+        ↓
+Otsu Thresholding
+        ↓
+Morphological Processing
+        ↓
+Contour Detection
+        ↓
+Ear Localization
+        ↓
+Cropped Ear ROI
+        ↓
+ ┌───────────────┬───────────────┐
+ │               │               │
+ ▼               ▼               ▼
+SIFT          KNN            CNN
+ │               │               │
+ └───────┬───────┴───────┬───────┘
+         ▼               ▼
+      Decision Fusion Layer
+               ↓
+     ACCEPT / REJECT
+```
+
+This architecture integrates **Computer Vision, Image Processing, Machine Learning, and Deep Learning** techniques to build a complete biometric authentication system capable of identifying individuals using unique ear characteristics.
 
 # 🔍 Image Preprocessing Pipeline
 
